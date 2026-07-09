@@ -1,0 +1,8 @@
+{
+  "name": "OneDrive Explorer",
+  "description": "A premium enterprise OneDrive file explorer built with Fluent Design and fully integrated with Microsoft Graph API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
