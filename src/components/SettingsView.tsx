@@ -13,6 +13,7 @@ interface SettingsViewProps {
   onDisconnect: (id: string) => void;
   onConnect: () => void;
   onResetDemoData: () => void;
+  onNavigateToDocs?: () => void;
 }
 
 export default function SettingsView({
@@ -21,7 +22,8 @@ export default function SettingsView({
   account,
   onDisconnect,
   onConnect,
-  onResetDemoData
+  onResetDemoData,
+  onNavigateToDocs
 }: SettingsViewProps) {
   const [clientId, setClientId] = useState(settings.clientId);
   const [clientSecret, setClientSecret] = useState(settings.clientSecret);
@@ -159,126 +161,31 @@ export default function SettingsView({
           <div className={`space-y-4 transition-opacity duration-200 ${useSimulation ? "opacity-40 pointer-events-none" : ""}`}>
             <span className="text-[10px] text-fluent-text-muted font-bold uppercase tracking-wider block">Microsoft Azure App Registration</span>
 
-            {/* Collapsible Setup Guide */}
-            <div className="border border-fluent-border dark:border-fluent-dark-border rounded-sm overflow-hidden bg-fluent-bg-sidebar/25 dark:bg-fluent-dark-bg/20">
+            {/* Setup Guide & Troubleshooting Banner */}
+            <div className="border border-fluent-brand/25 dark:border-fluent-brand/15 rounded-sm p-4 bg-fluent-brand-light/10 dark:bg-fluent-brand/5 space-y-2.5">
+              <div className="flex items-start space-x-2.5">
+                <span className="p-1.5 bg-fluent-brand/10 text-fluent-brand rounded-sm mt-0.5">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </span>
+                <div className="text-xs flex-1">
+                  <p className="font-bold text-fluent-text dark:text-white">Need Help? Visual Setup Guide & FAQs</p>
+                  <p className="text-fluent-text-secondary leading-relaxed mt-0.5">
+                    Includes step-by-step screenshots guide, client ID instructions, and <strong>3 instant solutions for "Need Admin Approval"</strong> restriction errors.
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => setShowGuide(!showGuide)}
-                className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-semibold text-fluent-text dark:text-white hover:bg-fluent-bg-sidebar/50 dark:hover:bg-fluent-dark-bg/50 transition-colors cursor-pointer text-left"
+                onClick={onNavigateToDocs}
+                className="w-full py-1.5 bg-fluent-brand hover:bg-fluent-brand-hover text-white text-xs font-semibold rounded-sm transition-colors flex items-center justify-center space-x-1.5 shadow-3xs cursor-pointer"
               >
-                <span className="flex items-center space-x-1.5">
-                  <svg className="w-4 h-4 text-fluent-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Need Help? Visual Setup Guide & FAQs</span>
-                </span>
-                <svg
-                  className={`w-4 h-4 transition-transform duration-200 ${showGuide ? "rotate-180" : ""}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <span>Open Interactive Setup Guide & Support Docs</span>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </button>
-
-              {showGuide && (
-                <div className="px-3.5 pb-3.5 pt-2 border-t border-fluent-border/60 dark:border-fluent-dark-border/60 text-[11px] text-fluent-text dark:text-gray-300 space-y-3 max-h-80 overflow-y-auto select-text">
-                  
-                  {/* FAQ Area */}
-                  <div className="bg-fluent-bg-sidebar/45 dark:bg-fluent-dark-bg/40 p-2.5 rounded-sm border border-fluent-border/50 dark:border-fluent-dark-border/50 space-y-2">
-                    <p className="leading-normal">
-                      <strong className="text-fluent-brand">Q: Why can't I just login with my Microsoft Email & Password?</strong><br />
-                      <span className="text-fluent-text-secondary">
-                        Microsoft OneDrive uses secure OAuth 2.0. Third-party web apps cannot directly touch or store your email/password. While pre-built native apps like "CX File Explorer" bundle their own registered Application ID inside their code, a custom web app running on your unique browser URL needs your free Azure App Registration Client ID to authorize safely.
-                      </span>
-                    </p>
-                    
-                    <p className="leading-normal border-t border-fluent-border/40 dark:border-fluent-dark-border/40 pt-2">
-                      <strong className="text-fluent-brand">Q: I don't know my Tenant ID. What should I put?</strong><br />
-                      <span className="text-fluent-text-secondary">
-                        You <span className="font-semibold text-fluent-text dark:text-white">do not need to know your Tenant ID</span>! Simply keep it set to <code className="bg-fluent-bg-sidebar dark:bg-fluent-dark-bg px-1 py-0.5 rounded font-mono text-[9px]">common</code>. This universal tenant alias handles any Microsoft account (Personal, Work, School).
-                      </span>
-                    </p>
-                  </div>
-
-                  {/* Step by Step list */}
-                  <div className="space-y-2">
-                    <p className="font-bold text-xs text-fluent-text dark:text-white border-b border-fluent-border/40 dark:border-fluent-dark-border/40 pb-1 flex items-center space-x-1">
-                      <span>Get your Free App Client ID in 2 Minutes:</span>
-                    </p>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">1</span>
-                        <p className="leading-relaxed">
-                          Open the <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noreferrer" className="text-fluent-brand hover:underline font-semibold">Azure Portal App Registrations</a> (100% free).
-                        </p>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">2</span>
-                        <p className="leading-relaxed">
-                          Click <span className="font-semibold text-fluent-text dark:text-white">New registration</span> at the top.
-                        </p>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">3</span>
-                        <p className="leading-relaxed">
-                          Name your app, for example: <code className="bg-fluent-bg-sidebar dark:bg-fluent-dark-bg px-1 rounded font-mono text-[10px]">My OneDrive Explorer</code>.
-                        </p>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">4</span>
-                        <p className="leading-relaxed">
-                          Under <strong>Supported account types</strong>, choose:<br />
-                          <span className="font-semibold text-fluent-brand text-[10px]">"Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox, Outlook)"</span>.<br />
-                          <span className="text-[10px] text-fluent-text-secondary italic">This is crucial! It lets you use the <code className="font-mono bg-fluent-bg-sidebar dark:bg-fluent-dark-bg px-1">common</code> tenant type.</span>
-                        </p>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">5</span>
-                        <div className="space-y-1 flex-1">
-                          <p className="leading-relaxed">
-                            Under <strong>Redirect URI</strong>, select <strong>Web</strong> in the dropdown, and paste your exact URL:
-                          </p>
-                          <div className="flex items-center space-x-1.5 mt-1">
-                            <code className="block flex-1 bg-white dark:bg-fluent-dark-card p-1.5 rounded border border-fluent-border dark:border-fluent-dark-border font-mono text-[9px] break-all select-all">{window.location.origin}/auth/callback</code>
-                            <button
-                              type="button"
-                              onClick={handleCopyCallback}
-                              className="px-2 py-1 bg-fluent-brand text-white text-[9px] rounded-xs font-semibold hover:bg-fluent-brand-hover transition-colors flex-shrink-0 cursor-pointer"
-                            >
-                              {copied ? "Copied!" : "Copy"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">6</span>
-                        <p className="leading-relaxed">
-                          Click <strong>Register</strong>.
-                        </p>
-                      </div>
-
-                      <div className="flex items-start space-x-2">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full bg-fluent-brand text-white text-[9px] font-bold flex items-center justify-center mt-0.5">7</span>
-                        <p className="leading-relaxed">
-                          Copy the <strong>Application (Client) ID</strong> from the App Overview screen and paste it below. Leave the Tenant ID set to <code className="font-mono bg-fluent-bg-sidebar dark:bg-fluent-dark-bg px-1 text-[10px]">common</code>. No client secret is required for single-user web client flow!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-amber-500/10 dark:bg-amber-500/5 p-2 rounded border border-amber-500/20 text-[10px] leading-normal">
-                    <strong>Tip:</strong> If you don't want to create an Azure app registration right now, toggle the <span className="font-semibold">High-Fidelity Simulation</span> switch above to explore all features instantly!
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="space-y-1.5">

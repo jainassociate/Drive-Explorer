@@ -32,6 +32,7 @@ import NotificationCenter from "./components/NotificationCenter";
 import ConnectionModal from "./components/ConnectionModal";
 import NotConnectedView from "./components/NotConnectedView";
 import FileEditorModal from "./components/FileEditorModal";
+import DocsView from "./components/DocsView";
 
 // Overlay Dialogs
 import {
@@ -1336,6 +1337,11 @@ export default function App() {
             onDisconnect={handleLogoutAccount}
             onConnect={handleConnectAccount}
             onResetDemoData={handleResetDemoData}
+            onNavigateToDocs={() => setActiveTab("docs")}
+          />
+        ) : activeTab === "docs" ? (
+          <DocsView
+            onBackToSettings={() => setActiveTab("settings")}
           />
         ) : activeTab === "developer-mode" ? (
           <DevConsole
