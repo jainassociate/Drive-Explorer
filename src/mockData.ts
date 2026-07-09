@@ -342,7 +342,7 @@ const INITIAL_MOCK_ITEMS: DriveItem[] = [
 ];
 
 export function getMockItems(): DriveItem[] {
-  const stored = localStorage.getItem("onedrive_mock_items");
+  const stored = sessionStorage.getItem("onedrive_mock_items");
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
@@ -354,10 +354,15 @@ export function getMockItems(): DriveItem[] {
       console.error("Failed to parse stored mock items, resetting", e);
     }
   }
-  localStorage.setItem("onedrive_mock_items", JSON.stringify(INITIAL_MOCK_ITEMS));
+  sessionStorage.setItem("onedrive_mock_items", JSON.stringify(INITIAL_MOCK_ITEMS));
   return INITIAL_MOCK_ITEMS;
 }
 
 export function saveMockItems(items: DriveItem[]) {
-  localStorage.setItem("onedrive_mock_items", JSON.stringify(items));
+  sessionStorage.setItem("onedrive_mock_items", JSON.stringify(items));
+}
+
+export function resetMockItems(): DriveItem[] {
+  sessionStorage.setItem("onedrive_mock_items", JSON.stringify(INITIAL_MOCK_ITEMS));
+  return INITIAL_MOCK_ITEMS;
 }

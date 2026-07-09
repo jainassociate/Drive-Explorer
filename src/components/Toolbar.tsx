@@ -153,52 +153,65 @@ export default function Toolbar({
         {/* Selection Specific Context Actions */}
         {selectedCount > 0 && (
           <div className="flex flex-wrap items-center gap-0.5 bg-fluent-bg-sidebar dark:bg-fluent-dark-bg rounded-sm p-0.5 border border-fluent-border dark:border-fluent-dark-border">
+            {/* Download (Single or Batch) */}
+            <button
+              onClick={onDownload}
+              className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
+              id="toolbar-btn-download"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span className={downloadText}>
+                {selectedCount > 1 ? `Download (${selectedCount})` : "Download"}
+              </span>
+            </button>
+
+            {/* Rename (Single only) */}
             {selectedCount === 1 && (
-              <>
-                <button
-                  onClick={onDownload}
-                  className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
-                  id="toolbar-btn-download"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span className={downloadText}>Download</span>
-                </button>
-                <button
-                  onClick={onRename}
-                  className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
-                  id="toolbar-btn-rename"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <span className={renameText}>Rename</span>
-                </button>
-                <button
-                  onClick={onShare}
-                  className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
-                  id="toolbar-btn-share"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 10.742l4.636-2.318a2 2 0 11.832 1.664l-4.636 2.318a2 2 0 11-.832-1.664z" />
-                  </svg>
-                  <span className={shareText}>Share</span>
-                </button>
-                {activeTab !== "recycle-bin" && (
-                  <button
-                    onClick={onToggleFavorite}
-                    className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
-                    id="toolbar-btn-favorite"
-                  >
-                    <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className={favoriteText}>Favorite</span>
-                  </button>
-                )}
-              </>
+              <button
+                onClick={onRename}
+                className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
+                id="toolbar-btn-rename"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className={renameText}>Rename</span>
+              </button>
             )}
+
+            {/* Share (Single or Batch) */}
+            <button
+              onClick={onShare}
+              className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
+              id="toolbar-btn-share"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 10.742l4.636-2.318a2 2 0 11.832 1.664l-4.636 2.318a2 2 0 11-.832-1.664z" />
+              </svg>
+              <span className={shareText}>
+                {selectedCount > 1 ? `Share (${selectedCount})` : "Share"}
+              </span>
+            </button>
+
+            {/* Favorite (Single or Batch) */}
+            {activeTab !== "recycle-bin" && (
+              <button
+                onClick={onToggleFavorite}
+                className="px-2 py-1 rounded-sm text-fluent-text-secondary dark:text-gray-300 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
+                id="toolbar-btn-favorite"
+              >
+                <svg className="w-3.5 h-3.5 text-amber-500 fill-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className={favoriteText}>
+                  {selectedCount > 1 ? `Favorite (${selectedCount})` : "Favorite"}
+                </span>
+              </button>
+            )}
+
+            {/* Delete (Single or Batch) */}
             <button
               onClick={onDelete}
               className="px-2 py-1 rounded-sm text-red-600 dark:text-red-400 hover:bg-white dark:hover:bg-fluent-dark-card text-xs font-semibold flex items-center space-x-1 transition-all"
@@ -207,7 +220,15 @@ export default function Toolbar({
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              <span className={deleteText}>{activeTab === "recycle-bin" ? "Delete Permanently" : "Delete"}</span>
+              <span className={deleteText}>
+                {activeTab === "recycle-bin"
+                  ? selectedCount > 1
+                    ? `Delete Permanently (${selectedCount})`
+                    : "Delete Permanently"
+                  : selectedCount > 1
+                  ? `Delete (${selectedCount})`
+                  : "Delete"}
+              </span>
             </button>
           </div>
         )}

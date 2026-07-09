@@ -17,7 +17,7 @@ import {
   SortField,
   SortOrder
 } from "./types";
-import { getMockItems, saveMockItems } from "./mockData";
+import { getMockItems, saveMockItems, resetMockItems } from "./mockData";
 
 // Components
 import Sidebar from "./components/Sidebar";
@@ -31,6 +31,7 @@ import MultiAccountSwitcher from "./components/MultiAccountSwitcher";
 import NotificationCenter from "./components/NotificationCenter";
 import ConnectionModal from "./components/ConnectionModal";
 import NotConnectedView from "./components/NotConnectedView";
+import FileEditorModal from "./components/FileEditorModal";
 
 // Overlay Dialogs
 import {
@@ -122,8 +123,9 @@ export default function App() {
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [renameTargetItem, setRenameTargetItem] = useState<DriveItem | null>(null);
   const [shareTargetItem, setShareTargetItem] = useState<DriveItem | null>(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{ item: DriveItem } | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ item?: DriveItem; items?: DriveItem[] } | null>(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [editingItem, setEditingItem] = useState<DriveItem | null>(null);
 
   // System Task Queue States
   const [uploads, setUploads] = useState<UploadTask[]>([]);
@@ -558,6 +560,25 @@ export default function App() {
     });
   };
 
+  // OPERATIONS: Reset Simulated Demo Data
+  const handleResetDemoData = () => {
+    const defaultItems = resetMockItems();
+    setAllItems(defaultItems);
+    addNotification("success", "Demo Data Reset", "Simulated OneDrive files have been restored to their default sample state.");
+    
+    // Log reset action to local dev console logs
+    logHttpRequest(
+      "POST",
+      "https://graph.microsoft.com/v1.0/me/drive/reset-simulation",
+      200,
+      100,
+      { "Content-Type": "application/json" },
+      null,
+      {},
+      { message: "Simulation files reset to defaults successfully" }
+    );
+  };
+
   // OPERATIONS: Create Folder
   const handleCreateFolder = async (name: string) => {
     setShowNewFolder(false);
@@ -809,6 +830,59 @@ export default function App() {
     }
   };
 
+  // OPERATIONS: Save File Content (In-App Text & Markdown Editor)
+  const handleSaveFileContent = async (itemId: string, newContent: string) => {
+    const item = allItems.find((i) => i.id === itemId);
+    if (!item) return;
+
+    if (settings.useSimulation) {
+      const updated = allItems.map((i) =>
+        i.id === itemId ? { ...i, content: newContent, size: newContent.length, lastModifiedDateTime: new Date().toISOString() } : i
+      );
+      setAllItems(updated);
+      saveMockItems(updated);
+      addNotification("success", "Saved Changes", `Successfully saved content of "${item.name}" offline-first.`);
+      
+      // Log PUT /content to local console logs
+      logHttpRequest(
+        "PUT",
+        `https://graph.microsoft.com/v1.0/me/drive/items/${itemId}/content`,
+        200,
+        150,
+        { "Content-Type": "text/plain" },
+        newContent,
+        {},
+        { message: "File content updated successfully" }
+      );
+    } else {
+      if (!activeAccount) return;
+      addNotification("info", "Saving Changes", `Saving "${item.name}" to Microsoft OneDrive...`);
+      
+      const url = `https://graph.microsoft.com/v1.0/me/drive/items/${itemId}/content`;
+      const headers = {
+        "Authorization": `Bearer ${activeAccount.accessToken}`,
+        "Content-Type": item.file?.mimeType || "text/plain"
+      };
+
+      try {
+        const response = await fetch("/api/graph/proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, method: "PUT", headers, body: newContent })
+        });
+        const data = await response.json();
+        if (data.status === 200 || data.status === 201) {
+          addNotification("success", "Saved Successfully", `Changes saved to OneDrive for "${item.name}".`);
+          fetchGraphItems(currentFolder.id);
+        } else {
+          addNotification("error", "Save Failed", data.responseBody?.error?.message || "Failed to save content");
+        }
+      } catch (e: any) {
+        addNotification("error", "Network Error", e.message || "Failed to communicate with Graph");
+      }
+    }
+  };
+
   // OPERATIONS: Delete
   const handleDeleteItem = async (item: DriveItem) => {
     setDeleteConfirmation(null);
@@ -863,6 +937,126 @@ export default function App() {
       } catch (e: any) {
         addNotification("error", "Network Error", e.message || "Failed to communicate with Graph");
       }
+    }
+  };
+
+  // OPERATIONS: Batch Delete
+  const handleBatchDelete = async () => {
+    if (!deleteConfirmation || !deleteConfirmation.items) return;
+    const itemsToDelete = deleteConfirmation.items;
+    setDeleteConfirmation(null);
+
+    if (settings.useSimulation) {
+      let updated = [...allItems];
+      const selectedIdSet = new Set(itemsToDelete.map((i) => i.id));
+      
+      if (activeTab === "recycle-bin") {
+        // Permanently delete batch
+        updated = allItems.filter((i) => !selectedIdSet.has(i.id));
+        addNotification("success", "Permanently Deleted", `Successfully purged ${itemsToDelete.length} items from your drive.`);
+      } else {
+        // Soft delete batch (send to Recycle Bin)
+        updated = allItems.map((i) => (selectedIdSet.has(i.id) ? { ...i, isRecycleBin: true } : i));
+        addNotification("success", "Moved to Recycle Bin", `${itemsToDelete.length} items have been moved to your Recycle Bin.`);
+      }
+
+      setAllItems(updated);
+      saveMockItems(updated);
+      setSelectedIds([]);
+
+      // Log DELETE logs for each item
+      itemsToDelete.forEach((item) => {
+        logHttpRequest(
+          "DELETE",
+          `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}`,
+          204,
+          110,
+          {},
+          "",
+          {},
+          "No Content"
+        );
+      });
+    } else {
+      // REAL MODE: delete items sequentially
+      if (!activeAccount) return;
+      addNotification("info", "Deleting Items", `Deleting ${itemsToDelete.length} items via Graph API...`);
+      
+      for (const item of itemsToDelete) {
+        const url = `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}`;
+        const headers = { "Authorization": `Bearer ${activeAccount.accessToken}` };
+        try {
+          await fetch("/api/graph/proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, method: "DELETE", headers })
+          });
+        } catch (e) {
+          console.error("Failed to delete", item.name, e);
+        }
+      }
+      addNotification("success", "Deleted Successfully", `Batch delete completed.`);
+      fetchGraphItems(currentFolder.id);
+      setSelectedIds([]);
+    }
+  };
+
+  const handleBatchDownload = () => {
+    const selectedItems = allItems.filter((i) => selectedIds.includes(i.id));
+    if (selectedItems.length === 0) return;
+    
+    selectedItems.forEach((item, idx) => {
+      setTimeout(() => {
+        handleDownloadItem(item);
+      }, idx * 250);
+    });
+    addNotification("success", "Batch Download Started", `Staggering download of ${selectedItems.length} items.`);
+  };
+
+  const handleBatchToggleFavorite = () => {
+    const selectedItems = allItems.filter((i) => selectedIds.includes(i.id));
+    if (selectedItems.length === 0) return;
+
+    const hasUnfavorited = selectedItems.some((i) => !i.isFavorite);
+    const targetStatus = hasUnfavorited;
+
+    if (settings.useSimulation) {
+      const updated = allItems.map((i) =>
+        selectedIds.includes(i.id) ? { ...i, isFavorite: targetStatus } : i
+      );
+      setAllItems(updated);
+      saveMockItems(updated);
+      addNotification(
+        "success",
+        targetStatus ? "Added to Favorites" : "Removed Favorites",
+        `Updated status for ${selectedItems.length} items.`
+      );
+    } else {
+      const updated = allItems.map((i) =>
+        selectedIds.includes(i.id) ? { ...i, isFavorite: targetStatus } : i
+      );
+      setAllItems(updated);
+      addNotification("success", "Updated Favorites", `Updated ${selectedItems.length} items client-side.`);
+    }
+  };
+
+  const handleBatchShare = () => {
+    const selectedItems = allItems.filter((i) => selectedIds.includes(i.id));
+    if (selectedItems.length === 0) return;
+
+    if (settings.useSimulation) {
+      const updated = allItems.map((item) => {
+        if (selectedIds.includes(item.id)) {
+          const generatedLink = `https://onedrive.microsoft.com/s/anon_${Date.now()}_${item.id}_shared`;
+          return { ...item, sharingLink: generatedLink, sharingType: "anonymous" as const };
+        }
+        return item;
+      });
+      setAllItems(updated);
+      saveMockItems(updated);
+      addNotification("success", "Batch Sharing Links Generated", `Anonymous sharing links generated for ${selectedItems.length} items.`);
+    } else {
+      addNotification("warning", "Access Perms", "Batch sharing links can be generated via single share configuration or OneDrive web panel.");
     }
   };
 
@@ -1071,6 +1265,7 @@ export default function App() {
 
   const filteredItems = getFilteredAndSortedItems();
   const selectedItem = allItems.find((i) => i.id === selectedIds[0]) || null;
+  const selectedItems = allItems.filter((i) => selectedIds.includes(i.id));
 
   return (
     <div className="flex h-screen bg-fluent-bg dark:bg-fluent-dark-bg text-fluent-text dark:text-gray-100 overflow-hidden font-sans select-none animate-fade-in">
@@ -1140,6 +1335,7 @@ export default function App() {
             account={activeAccount}
             onDisconnect={handleLogoutAccount}
             onConnect={handleConnectAccount}
+            onResetDemoData={handleResetDemoData}
           />
         ) : activeTab === "developer-mode" ? (
           <DevConsole
@@ -1194,11 +1390,11 @@ export default function App() {
                   };
                   input.click();
                 }}
-                onDownload={() => selectedItem && handleDownloadItem(selectedItem)}
+                onDownload={() => selectedIds.length > 1 ? handleBatchDownload() : selectedItem && handleDownloadItem(selectedItem)}
                 onRename={() => selectedItem && setRenameTargetItem(selectedItem)}
-                onDelete={() => selectedItem && setDeleteConfirmation({ item: selectedItem })}
-                onShare={() => selectedItem && setShareTargetItem(selectedItem)}
-                onToggleFavorite={() => selectedItem && handleToggleFavorite(selectedItem)}
+                onDelete={() => selectedIds.length > 1 ? setDeleteConfirmation({ items: selectedItems }) : selectedItem && setDeleteConfirmation({ item: selectedItem })}
+                onShare={() => selectedIds.length > 1 ? handleBatchShare() : selectedItem && setShareTargetItem(selectedItem)}
+                onToggleFavorite={() => selectedIds.length > 1 ? handleBatchToggleFavorite() : selectedItem && handleToggleFavorite(selectedItem)}
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 sortField={sortField}
@@ -1226,16 +1422,17 @@ export default function App() {
                 onMoveItem={handleMoveItem}
                 breadcrumbs={getBreadcrumbs()}
                 onBreadcrumbClick={handleBreadcrumbClick}
+                onOpenFile={setEditingItem}
               />
             </div>
 
             {/* Sidebar properties inspector drawer panel */}
             <DetailsPanel
-              selectedItem={selectedItem}
+              selectedItems={selectedItems}
               onClose={() => setSelectedIds([])}
-              onDownload={() => selectedItem && handleDownloadItem(selectedItem)}
-              onShare={() => selectedItem && setShareTargetItem(selectedItem)}
-              onToggleFavorite={() => selectedItem && handleToggleFavorite(selectedItem)}
+              onDownload={() => selectedIds.length > 1 ? handleBatchDownload() : selectedItem && handleDownloadItem(selectedItem)}
+              onShare={() => selectedIds.length > 1 ? handleBatchShare() : selectedItem && setShareTargetItem(selectedItem)}
+              onToggleFavorite={() => selectedIds.length > 1 ? handleBatchToggleFavorite() : selectedItem && handleToggleFavorite(selectedItem)}
             />
           </div>
         )}
@@ -1294,14 +1491,32 @@ export default function App() {
 
       {deleteConfirmation && (
         <ConfirmationModal
-          title={activeTab === "recycle-bin" ? "Permanently Delete Item?" : "Move to Recycle Bin?"}
+          title={
+            deleteConfirmation.items
+              ? activeTab === "recycle-bin"
+                ? "Permanently Delete Multiple Items?"
+                : "Move Multiple Items to Recycle Bin?"
+              : activeTab === "recycle-bin"
+              ? "Permanently Delete Item?"
+              : "Move to Recycle Bin?"
+          }
           message={
-            activeTab === "recycle-bin"
-              ? `Are you absolutely sure you want to permanently delete "${deleteConfirmation.item.name}"? This operation cannot be undone.`
-              : `Are you sure you want to delete "${deleteConfirmation.item.name}"? It will be moved to your Recycle Bin folder where you can restore it anytime.`
+            deleteConfirmation.items
+              ? activeTab === "recycle-bin"
+                ? `Are you absolutely sure you want to permanently delete ${deleteConfirmation.items.length} items? This operation cannot be undone.`
+                : `Are you sure you want to delete ${deleteConfirmation.items.length} items? They will be moved to your Recycle Bin folder where you can restore them anytime.`
+              : activeTab === "recycle-bin"
+              ? `Are you absolutely sure you want to permanently delete "${deleteConfirmation.item?.name}"? This operation cannot be undone.`
+              : `Are you sure you want to delete "${deleteConfirmation.item?.name}"? It will be moved to your Recycle Bin folder where you can restore it anytime.`
           }
           confirmLabel={activeTab === "recycle-bin" ? "Delete Permanently" : "Move to Bin"}
-          onConfirm={() => handleDeleteItem(deleteConfirmation.item)}
+          onConfirm={() => {
+            if (deleteConfirmation.items) {
+              handleBatchDelete();
+            } else if (deleteConfirmation.item) {
+              handleDeleteItem(deleteConfirmation.item);
+            }
+          }}
           onClose={() => setDeleteConfirmation(null)}
         />
       )}
@@ -1335,6 +1550,17 @@ export default function App() {
         onClose={() => setShowNotificationCenter(false)}
         isOpen={showNotificationCenter}
       />
+
+      {editingItem && (
+        <FileEditorModal
+          item={editingItem}
+          onSave={(id, newContent) => {
+            handleSaveFileContent(id, newContent);
+            setEditingItem(null);
+          }}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </div>
   );
 }

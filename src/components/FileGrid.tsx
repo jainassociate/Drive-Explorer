@@ -21,6 +21,7 @@ interface FileGridProps {
   onMoveItem: (itemId: string, targetFolderId: string) => void;
   breadcrumbs: { id: string; name: string }[];
   onBreadcrumbClick: (index: number) => void;
+  onOpenFile?: (item: DriveItem) => void;
 }
 
 export default function FileGrid({
@@ -37,9 +38,11 @@ export default function FileGrid({
   onUploadDroppedFiles,
   onMoveItem,
   breadcrumbs,
-  onBreadcrumbClick
+  onBreadcrumbClick,
+  onOpenFile
 }: FileGridProps) {
   const [dragOverWorkspace, setDragOverWorkspace] = useState(false);
+  const [draggedCount, setDraggedCount] = useState(0);
   const [draggedItem, setDraggedItem] = useState<DriveItem | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
 
@@ -122,16 +125,21 @@ export default function FileGrid({
     e.preventDefault();
     e.stopPropagation();
     setDragOverWorkspace(true);
+    if (e.dataTransfer && e.dataTransfer.items) {
+      setDraggedCount(e.dataTransfer.items.length);
+    }
   };
 
   const handleDragLeaveWorkspace = () => {
     setDragOverWorkspace(false);
+    setDraggedCount(0);
   };
 
   const handleDropWorkspace = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverWorkspace(false);
+    setDraggedCount(0);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       onUploadDroppedFiles(e.dataTransfer.files);
@@ -300,12 +308,18 @@ export default function FileGrid({
 
       {/* Drag & Drop Overlay */}
       {dragOverWorkspace && (
-        <div className="absolute inset-0 bg-fluent-brand/5 dark:bg-fluent-brand/10 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none z-10 border-2 border-dashed border-fluent-brand m-2 rounded-sm">
-          <svg className="w-12 h-12 text-fluent-brand animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          <span className="text-base font-bold text-fluent-brand mt-4">Drop files to upload instantly</span>
-          <span className="text-xs text-fluent-text-secondary mt-1">Accepts multiple files and structures</span>
+        <div className="absolute inset-0 bg-fluent-brand/10 dark:bg-fluent-brand/15 backdrop-blur-md flex flex-col items-center justify-center pointer-events-none z-10 border-2 border-dashed border-fluent-brand m-2 rounded-sm animate-fade-in">
+          <div className="p-6 bg-white dark:bg-fluent-dark-card rounded-md shadow-lg flex flex-col items-center max-w-sm text-center border border-fluent-border dark:border-fluent-dark-border">
+            <svg className="w-14 h-14 text-fluent-brand animate-bounce mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span className="text-sm font-bold text-fluent-text dark:text-white">
+              {draggedCount > 0 ? `Release to upload ${draggedCount} item${draggedCount > 1 ? "s" : ""}` : "Drop files to upload instantly"}
+            </span>
+            <span className="text-[11px] text-fluent-text-secondary mt-1 leading-normal">
+              Your files will be uploaded securely into the active directory path.
+            </span>
+          </div>
         </div>
       )}
 
@@ -351,7 +365,7 @@ export default function FileGrid({
                   onDragLeave={handleItemDragLeave}
                   onDrop={(e) => handleItemDrop(e, item)}
                   onClick={(e) => handleItemClick(e, item)}
-                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : setSelectedIds([item.id])}
+                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : (onOpenFile ? onOpenFile(item) : setSelectedIds([item.id]))}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                   className={`file-item-clickable flex flex-col items-center justify-between p-3 rounded-sm border cursor-pointer select-none relative transition-all duration-100 ${
                     isSelected
@@ -391,7 +405,7 @@ export default function FileGrid({
                   onDragLeave={handleItemDragLeave}
                   onDrop={(e) => handleItemDrop(e, item)}
                   onClick={(e) => handleItemClick(e, item)}
-                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : setSelectedIds([item.id])}
+                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : (onOpenFile ? onOpenFile(item) : setSelectedIds([item.id]))}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                   className={`file-item-clickable flex items-center justify-between p-1.5 px-3 rounded-sm border cursor-pointer select-none transition-all duration-100 ${
                     isSelected
@@ -424,7 +438,7 @@ export default function FileGrid({
                   onDragLeave={handleItemDragLeave}
                   onDrop={(e) => handleItemDrop(e, item)}
                   onClick={(e) => handleItemClick(e, item)}
-                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : setSelectedIds([item.id])}
+                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : (onOpenFile ? onOpenFile(item) : setSelectedIds([item.id]))}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                   className={`file-item-clickable flex items-center text-xs text-fluent-text-secondary dark:text-gray-300 px-4 py-1.5 rounded-sm cursor-pointer select-none transition-all duration-100 border-b border-fluent-border/30 dark:border-fluent-dark-border/30 ${
                     isSelected
@@ -463,7 +477,7 @@ export default function FileGrid({
                   onDragLeave={handleItemDragLeave}
                   onDrop={(e) => handleItemDrop(e, item)}
                   onClick={(e) => handleItemClick(e, item)}
-                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : setSelectedIds([item.id])}
+                  onDoubleClick={() => isFolder ? onNavigateToFolder(item.id, item.name) : (onOpenFile ? onOpenFile(item) : setSelectedIds([item.id]))}
                   onContextMenu={(e) => handleContextMenu(e, item)}
                   className={`file-item-clickable flex items-center space-x-3 p-2.5 rounded-sm border cursor-pointer select-none transition-all duration-100 ${
                     isSelected
@@ -510,6 +524,8 @@ export default function FileGrid({
                 onClick={() => {
                   if (contextMenu.item?.folder) {
                     onNavigateToFolder(contextMenu.item.id, contextMenu.item.name);
+                  } else if (onOpenFile && contextMenu.item) {
+                    onOpenFile(contextMenu.item);
                   }
                   setContextMenu(null);
                 }}

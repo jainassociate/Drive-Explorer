@@ -12,6 +12,7 @@ interface SettingsViewProps {
   account: MicrosoftAccount | null;
   onDisconnect: (id: string) => void;
   onConnect: () => void;
+  onResetDemoData: () => void;
 }
 
 export default function SettingsView({
@@ -19,7 +20,8 @@ export default function SettingsView({
   onSave,
   account,
   onDisconnect,
-  onConnect
+  onConnect,
+  onResetDemoData
 }: SettingsViewProps) {
   const [clientId, setClientId] = useState(settings.clientId);
   const [clientSecret, setClientSecret] = useState(settings.clientSecret);
@@ -333,6 +335,26 @@ export default function SettingsView({
               <p className="text-[10px] text-fluent-text-secondary leading-normal">
                 Register this exact callback URL in your Microsoft Entra ID (Azure AD) Portal as a <strong>Web</strong> redirect URI to allow successful OAuth connections.
               </p>
+            </div>
+          </div>
+
+          {/* Reset Simulated Drive Data Card */}
+          <div className="p-4 border border-amber-500/20 rounded-sm bg-amber-500/5 dark:bg-amber-500/5 space-y-3">
+            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider block">Simulated Drive Maintenance</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-fluent-text dark:text-white">Reset Demo Files to Default State</p>
+                <p className="text-[10px] text-fluent-text-secondary mt-0.5 leading-relaxed max-w-md">
+                  If files were deleted or updated during the simulation, you can instantly restore all original folders, sheets, videos, and presentations.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onResetDemoData}
+                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-sm transition-colors cursor-pointer shadow-3xs whitespace-nowrap self-start sm:self-center"
+              >
+                Reset Demo Files
+              </button>
             </div>
           </div>
 

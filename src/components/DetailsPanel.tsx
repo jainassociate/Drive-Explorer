@@ -7,7 +7,7 @@ import { useState } from "react";
 import { DriveItem } from "../types";
 
 interface DetailsPanelProps {
-  selectedItem: DriveItem | null;
+  selectedItems: DriveItem[];
   onClose: () => void;
   onDownload: () => void;
   onShare: () => void;
@@ -15,7 +15,7 @@ interface DetailsPanelProps {
 }
 
 export default function DetailsPanel({
-  selectedItem,
+  selectedItems,
   onClose,
   onDownload,
   onShare,
@@ -23,9 +23,11 @@ export default function DetailsPanel({
 }: DetailsPanelProps) {
   const [activeTab, setActiveTab] = useState<"details" | "versions" | "access">("details");
 
-  if (!selectedItem) {
+  const totalCount = selectedItems.length;
+
+  if (totalCount === 0) {
     return (
-      <div className="w-80 border-l border-fluent-border dark:border-fluent-dark-border bg-white dark:bg-fluent-dark-card flex flex-col items-center justify-center p-6 text-center select-none" id="onedrive-detailspanel-empty">
+      <div className="w-80 border-l border-fluent-border dark:border-fluent-dark-border bg-white dark:bg-fluent-dark-card flex flex-col items-center justify-center p-6 text-center select-none animate-fade-in" id="onedrive-detailspanel-empty">
         <svg className="w-10 h-10 text-fluent-text-muted mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -36,9 +38,6 @@ export default function DetailsPanel({
       </div>
     );
   }
-
-  const isFolder = !!selectedItem.folder;
-  const mime = selectedItem.file?.mimeType || "";
 
   const formatSize = (bytes?: number) => {
     if (bytes === undefined) return "--";
@@ -60,6 +59,126 @@ export default function DetailsPanel({
       minute: "2-digit"
     });
   };
+
+  // Multi-Select Batch Summary Panel
+  if (totalCount > 1) {
+    const totalBytes = selectedItems.reduce((acc, curr) => acc + (curr.size || 0), 0);
+    const containsFolder = selectedItems.some((i) => !!i.folder);
+    const containsUnfavorited = selectedItems.some((i) => !i.isFavorite);
+
+    return (
+      <aside className="w-80 border-l border-fluent-border dark:border-fluent-dark-border bg-white dark:bg-fluent-dark-card flex flex-col justify-between h-full select-none animate-fade-in" id="onedrive-detailspanel-batch">
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Header */}
+          <div className="p-4 border-b border-fluent-border dark:border-fluent-dark-border flex items-center justify-between">
+            <div className="min-w-0">
+              <span className="font-semibold text-fluent-text dark:text-white text-xs uppercase tracking-wider">Batch Operations</span>
+              <span className="text-[10px] text-fluent-brand block mt-0.5 font-bold">Multiple Selection Mode</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-sm hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border/40 text-fluent-text-muted hover:text-fluent-text transition-colors"
+              id="detailspanel-btn-close-batch"
+            >
+              <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Batch Stack Visual */}
+          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+            <div className="flex flex-col items-center justify-center py-5 bg-fluent-brand-light/20 dark:bg-fluent-brand/10 border border-fluent-brand/20 rounded-sm">
+              <div className="flex -space-x-4">
+                <div className="w-10 h-10 rounded-sm bg-white dark:bg-fluent-dark-card border border-fluent-border dark:border-fluent-dark-border shadow-xs flex items-center justify-center transform -rotate-6">
+                  <svg className="w-5 h-5 text-fluent-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="w-10 h-10 rounded-sm bg-white dark:bg-fluent-dark-card border border-fluent-border dark:border-fluent-dark-border shadow-sm flex items-center justify-center transform z-10">
+                  <svg className="w-5 h-5 text-amber-500 fill-amber-500/10" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  </svg>
+                </div>
+                <div className="w-10 h-10 rounded-sm bg-white dark:bg-fluent-dark-card border border-fluent-border dark:border-fluent-dark-border shadow-xs flex items-center justify-center transform rotate-6">
+                  <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+
+              <span className="text-xs font-bold text-fluent-text dark:text-white mt-4">{totalCount} items selected</span>
+              <span className="text-[10px] text-fluent-text-secondary mt-0.5">{formatSize(totalBytes)} combined size</span>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={onDownload}
+                className="py-2 px-1 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-fluent-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span>Download</span>
+              </button>
+              <button
+                onClick={onShare}
+                className="py-2 px-1 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5 text-fluent-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 10.742l4.636-2.318a2 2 0 11.832 1.664l-4.636 2.318a2 2 0 11-.832-1.664z" />
+                </svg>
+                <span>Share</span>
+              </button>
+              <button
+                onClick={onToggleFavorite}
+                className="py-2 px-1 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs cursor-pointer"
+              >
+                <svg className={`w-3.5 h-3.5 ${!containsUnfavorited ? "text-amber-500 fill-amber-500" : "text-fluent-text-muted"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+                <span>{!containsUnfavorited ? "Favorited" : "Favorite"}</span>
+              </button>
+            </div>
+
+            {/* List of names */}
+            <div className="space-y-2 pt-2">
+              <span className="block text-[9px] text-fluent-text-muted font-bold uppercase tracking-wider">Files Selected</span>
+              <div className="divide-y divide-fluent-border/40 dark:divide-fluent-dark-border/40 max-h-56 overflow-y-auto pr-1">
+                {selectedItems.map((item) => (
+                  <div key={item.id} className="py-2 flex items-center justify-between text-[11px]">
+                    <div className="flex items-center space-x-2 truncate">
+                      {item.folder ? (
+                        <span className="w-2 h-2 rounded-full bg-yellow-500 flex-shrink-0" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-fluent-brand flex-shrink-0" />
+                      )}
+                      <span className="text-fluent-text dark:text-gray-200 truncate font-semibold" title={item.name}>
+                        {item.name}
+                      </span>
+                    </div>
+                    <span className="text-fluent-text-secondary text-[9.5px] ml-2 flex-shrink-0">
+                      {item.folder ? "Folder" : formatSize(item.size)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-fluent-border dark:border-fluent-dark-border bg-fluent-bg-sidebar/30 dark:bg-fluent-dark-sidebar/15 flex justify-between text-[10px] text-fluent-text-secondary">
+          <span>Batch operations affect all selections.</span>
+        </div>
+      </aside>
+    );
+  }
+
+  // Single Selection Inspection (original details tab logic)
+  const selectedItem = selectedItems[0];
+  const isFolder = !!selectedItem.folder;
+  const mime = selectedItem.file?.mimeType || "";
 
   // Helper to render inline previews
   const renderFilePreview = () => {
@@ -145,6 +264,8 @@ export default function DetailsPanel({
           <p className="text-[10px] font-mono text-fluent-text-secondary leading-normal whitespace-pre-wrap">
             {selectedItem.name === "Welcome to OneDrive.txt" ? (
               `Welcome to OneDrive Explorer!\n\nThis premium application connects directly to your OneDrive for Business or Personal account through Microsoft Graph.\n\nEnjoy desktop-class features including Drag-and-Drop, inline previews, version history, and real-time developer logging.`
+            ) : selectedItem.content ? (
+              selectedItem.content
             ) : (
               `# Text Preview\n\nThis is a plain text file preview.\nYou can double-click this item in the files list to highlight, edit or share with your external enterprise organization.`
             )}
@@ -170,14 +291,14 @@ export default function DetailsPanel({
   };
 
   return (
-    <aside className="w-80 border-l border-fluent-border dark:border-fluent-dark-border bg-white dark:bg-fluent-dark-card flex flex-col justify-between h-full select-none" id="onedrive-detailspanel">
+    <aside className="w-80 border-l border-fluent-border dark:border-fluent-dark-border bg-white dark:bg-fluent-dark-card flex flex-col justify-between h-full select-none animate-fade-in" id="onedrive-detailspanel">
       {/* Panel Header */}
       <div>
         <div className="p-4 border-b border-fluent-border dark:border-fluent-dark-border flex items-center justify-between">
           <span className="font-semibold text-fluent-text dark:text-white text-xs uppercase tracking-wider">Item Details</span>
           <button
             onClick={onClose}
-            className="p-1 rounded-sm hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border/40 text-fluent-text-muted hover:text-fluent-text transition-colors"
+            className="p-1 rounded-sm hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border/40 text-fluent-text-muted hover:text-fluent-text transition-colors cursor-pointer"
             id="detailspanel-btn-close"
           >
             <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -192,7 +313,7 @@ export default function DetailsPanel({
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 text-center py-1.5 text-[10px] font-bold rounded-sm capitalize transition-all ${
+              className={`flex-1 text-center py-1.5 text-[10px] font-bold rounded-sm capitalize transition-all cursor-pointer ${
                 activeTab === tab
                   ? "bg-white dark:bg-fluent-dark-card text-fluent-brand shadow-3xs"
                   : "text-fluent-text-secondary hover:text-fluent-text dark:hover:text-gray-200"
@@ -215,7 +336,7 @@ export default function DetailsPanel({
               <div className="grid grid-cols-3 gap-1.5 pt-1">
                 <button
                   onClick={onDownload}
-                  className="py-1.5 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs"
+                  className="py-1.5 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -224,7 +345,7 @@ export default function DetailsPanel({
                 </button>
                 <button
                   onClick={onShare}
-                  className="py-1.5 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs"
+                  className="py-1.5 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 10.742l4.636-2.318a2 2 0 11.832 1.664l-4.636 2.318a2 2 0 11-.832-1.664z" />
@@ -233,7 +354,7 @@ export default function DetailsPanel({
                 </button>
                 <button
                   onClick={onToggleFavorite}
-                  className="py-1.5 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs"
+                  className="py-1.5 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar dark:hover:bg-fluent-dark-border text-fluent-text-secondary rounded-sm text-[9px] font-bold border border-fluent-border dark:border-fluent-dark-border flex flex-col items-center space-y-1 transition-colors shadow-3xs cursor-pointer"
                 >
                   <svg className={`w-3.5 h-3.5 ${selectedItem.isFavorite ? "text-amber-500 fill-amber-500" : "text-fluent-text-muted"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -291,7 +412,7 @@ export default function DetailsPanel({
                 {/* Active version */}
                 <div className="p-2.5 bg-fluent-brand-light/30 dark:bg-fluent-brand/10 border border-fluent-brand/20 rounded-sm flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-fluent-brand">v{selectedItem.version || "2.1"} (Active)</p>
+                    <p className="text-[11px] font-bold text-fluent-brand">v{selectedItem.version || "1.0"} (Active)</p>
                     <p className="text-[10px] text-fluent-text-secondary mt-0.5">Modified by you</p>
                     <p className="text-[9px] text-fluent-text-muted">{formatDate(selectedItem.lastModifiedDateTime)}</p>
                   </div>
@@ -301,11 +422,11 @@ export default function DetailsPanel({
                 {/* Older versions */}
                 <div className="p-2.5 bg-fluent-bg-sidebar/40 dark:bg-fluent-dark-bg/40 border border-fluent-border dark:border-fluent-dark-border rounded-sm flex items-center justify-between hover:bg-fluent-bg-sidebar transition-colors">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-fluent-text">v1.0 (Initial Commit)</p>
+                    <p className="text-[11px] font-semibold text-fluent-text">v0.9 (Initial Upload)</p>
                     <p className="text-[10px] text-fluent-text-secondary mt-0.5">Created by you</p>
                     <p className="text-[9px] text-fluent-text-muted">{formatDate(selectedItem.createdDateTime)}</p>
                   </div>
-                  <button className="text-[10px] text-fluent-brand hover:underline font-semibold">Restore</button>
+                  <button className="text-[10px] text-fluent-brand hover:underline font-semibold cursor-pointer">Restore</button>
                 </div>
               </div>
             </div>
@@ -330,13 +451,13 @@ export default function DetailsPanel({
                       onClick={() => {
                         navigator.clipboard.writeText(selectedItem.sharingLink || "");
                       }}
-                      className="flex-1 py-1 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar text-[11px] font-bold rounded-sm border border-fluent-border dark:border-fluent-dark-border text-fluent-text-secondary transition-colors"
+                      className="flex-1 py-1 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar text-[11px] font-bold rounded-sm border border-fluent-border dark:border-fluent-dark-border text-fluent-text-secondary transition-colors cursor-pointer"
                     >
                       Copy Link
                     </button>
                     <button
                       onClick={onShare} // reopen sharing config modal
-                      className="py-1 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar text-[11px] font-bold rounded-sm border border-fluent-border dark:border-fluent-dark-border text-fluent-text-secondary transition-colors"
+                      className="py-1 px-2 bg-white dark:bg-fluent-dark-bg hover:bg-fluent-bg-sidebar text-[11px] font-bold rounded-sm border border-fluent-border dark:border-fluent-dark-border text-fluent-text-secondary transition-colors cursor-pointer"
                     >
                       Settings
                     </button>
@@ -347,7 +468,7 @@ export default function DetailsPanel({
                   <p className="text-xs text-fluent-text-secondary">This item isn't shared yet.</p>
                   <button
                     onClick={onShare}
-                    className="py-1.5 px-3 bg-fluent-brand hover:bg-fluent-brand-hover text-white font-semibold text-xs rounded-sm shadow-2xs transition-colors"
+                    className="py-1.5 px-3 bg-fluent-brand hover:bg-fluent-brand-hover text-white font-semibold text-xs rounded-sm shadow-2xs transition-colors cursor-pointer"
                   >
                     Generate Link
                   </button>
@@ -364,7 +485,7 @@ export default function DetailsPanel({
           onClick={() => {
             window.open(selectedItem.webUrl, "_blank", "referrerpolicy=no-referrer");
           }}
-          className="text-xs text-fluent-brand hover:underline font-bold flex items-center space-x-1"
+          className="text-xs text-fluent-brand hover:underline font-bold flex items-center space-x-1 cursor-pointer"
         >
           <span>Open on OneDrive Web</span>
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

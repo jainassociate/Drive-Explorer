@@ -46,6 +46,7 @@ export interface DriveItem {
   version?: string;
   sharingLink?: string;
   sharingType?: string;
+  content?: string;
 }
 
 export interface MicrosoftAccount {
